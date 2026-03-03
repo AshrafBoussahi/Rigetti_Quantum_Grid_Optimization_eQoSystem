@@ -35,6 +35,27 @@ Instead of a simple Ising mapping that is typically used in standard Quantum App
 
 ### The Typical QAOA Circuit & Resources Estimation
 
+## Maximum Power Energy Section (MPES)
+
+## MPES Summary
+
+The Maximum Power Energy Section (MPES) focuses on optimizing large-scale power grid energy distribution using quantum-enhanced optimization techniques. The problem is formulated as a Weighted Max-Cut optimization task over a sparse 3-regular graph representing a 180-node grid with 226 weighted edges.
+
+The objective is to maximize
+
+$$
+\max_{x \in \{-1,1\}^m} \sum_{i,j} W_{ij}(1 - x_i x_j)
+$$
+
+where \( W_{ij} \) represents edge weights and \( x_i \) denotes node partition assignments.
+
+The optimization is implemented using the Quantum Approximate Optimization Algorithm (QAOA), where each node is encoded into a single qubit. The interaction term \( x_i x_j \) is mapped to ZZ gates, which are decomposed into CNOT and rotation gates since ZZ interactions are not native hardware operations.
+
+However, large-scale deployment faces major hardware limitations due to connectivity constraints in two-dimensional lattice architectures. When embedding the sparse graph onto physical qubit layouts, additional SWAP operations are required to route quantum information between distant qubits.
+
+For lattice sizes such as a \( 14 \times 14 \) structure accommodating 180 logical qubits, routing overhead increases circuit depth significantly. Since two-qubit gate fidelity is approximately 99%, the accumulation of errors across numerous SWAP and interaction gates causes the overall circuit fidelity to decay exponentially as system size and QAOA layer depth increase.
+
+This demonstrates the scalability limitation of running large-scale variational quantum optimization algorithms on current noisy intermediate-scale quantum hardware.
 
 
 ### The Optimization Challenge: Our Solution:
@@ -92,7 +113,55 @@ $$
 
 We then pass the obtained cut into a classical post-processing step. We tried one round of single-bit swap search and a greedy improvement algorithm.
 
-Benchmarking and results:
+## Benchmarking and results:
+
+# Experimental Results and Benchmarking
+
+The following sections detail the performance of our **Pauli Correlation Encoding (PCE)** solver on both simulated environments and the **Rigetti Ankaa-3 QPU**. Our results demonstrate the effectiveness of polynomial compression in solving large-scale grid optimization tasks within a single quantum circuit execution.
+
+### 1. Simulation and Classical Deep-Optimization
+Initial testing was performed using high-fidelity simulations to establish a baseline for the PCE-VQE performance. The integration of a **greedy search** post-processor significantly enhanced the raw quantum output through iterative refinement. 
+
+| Phase | Cut Size |
+| :--- | :--- |
+| **Initial Cut (Pre-Local Search)** | 6561.39 |
+| **Final Optimized Cut** | 6635.43 |
+| **Final Deep-Optimized Cut (12 iterations)** | **6853.43** |
+
+---
+
+### 2. Rigetti Ankaa-3 QPU Evaluation
+We successfully deployed the solver on the **Rigetti Ankaa-3 QPU**. To minimize noise and gate infidelities, we utilized a specific hardware-aware qubit mapping tailored to the device's connectivity. 
+
+**Primary Qubit Mapping:**
+`{0:2, 1:9, 2:8, 3:7, 4:14, 5:21, 6:22, 7:15, 8:16, 9:23, 10:30, 11:31}`
+
+* **Initial QPU Cut Size (Before Local Search):** 4023.80
+* **Final Optimized Cut (Post-Execution):** 6340.69
+* **Greedy Search Refinement:** **6600.00**
+
+---
+
+### 3. k=3 Compression and Pauli Twirling
+[cite_start]To further explore the limits of qubit-efficient encoding, we implemented **cubic ($k=3$) compression** with `reps=2`. To mitigate hardware noise on the Ankaa-3, we utilized **Pauli Twirling** across 6 twirled circuits per rank, with 1666 shots each.
+
+| Rank | Best Mapping (Nodes to Qubits) | Initial Cut | Final Optimized Cut |
+| :--- | :--- | :--- | :--- |
+| **Rank 1** | `{0:2, 1:3, 2:4, 3:11, 4:18, 5:19, 6:12, 7:5, 8:6}` | 4183.02 | 6024.04 |
+| **Rank 2** | `{0:2, 1:3, 2:4, 3:5, 4:12, 5:19, 6:18, 7:11, 8:10}` | 2834.98 | 6156.95 |
+| **Rank 3** | `{0:2, 1:3, 2:4, 3:5, 4:12, 5:11, 6:18, 7:19, 8:20}` | 3455.81 | 6105.12 |
+| **Rank 4** | `{0:8, 1:9, 2:2, 3:3, 4:4, 5:5, 6:12, 7:19, 8:20}` | 3465.79 | 5832.58 |
+| **Rank 5** | `{0:8, 1:9, 2:2, 3:3, 4:4, 5:11, 6:12, 7:19, 8:20}` | 3486.88 | 5696.84 |
+| **Rank 6** | `{0:20, 1:19, 2:12, 3:5, 4:4, 5:11, 6:18, 7:25, 8:24}` | 3329.89 | 5915.87 |
+| **Rank 7** | `{0:8, 1:9, 2:2, 3:3, 4:4, 5:5, 6:12, 7:19, 8:18}` | 3533.30 | **6228.15** |
+| **Rank 8** | `{0:10, 1:17, 2:18, 3:11, 4:4, 5:5, 6:12, 7:19, 8:20}` | 4019.71 | 6163.49 |
+
+> **Note:** Peak performance during edge exchange iterations reached a maximum cut size of approximately **6700**.
+
+
+
+### 4. Project Sandboxes and Documentation
+Comprehensive execution logs, iterative mapping trials, and the full implementation logic are available in the attached **Sandboxes (Jupyter Notebooks)**. These documents contain the full history of our optimization loops, including Adam optimizer parameters and twirling configurations used to achieve these results. 
 
 
 
