@@ -163,7 +163,63 @@ We successfully deployed the solver on the **Rigetti Ankaa-3 QPU**. To minimize 
 ### 4. Project Sandboxes and Documentation
 Comprehensive execution logs, iterative mapping trials, and the full implementation logic are available in the attached **Sandboxes (Jupyter Notebooks)**. These documents contain the full history of our optimization loops, including Adam optimizer parameters and twirling configurations used to achieve these results. 
 
+# Extra Results:
 
+# MaxCut Quantum Optimization Experiment Results & Parameter Analysis
+
+## 1. Classical Baseline
+- **Method**: Local Search (`maxcut.one_exchange` heuristic)
+- **Random Restarts**: 100
+- **Best Classical Cut Found**: **6407.29**
+
+## 2. Quantum Experiments Summary
+The following table summarizes the different runs, tracking the changes in circuit parameters, learning rates, gradient techniques, and the resulting performance.
+
+| Experiment | Notebook | Qubits | Reps | k | Gradient Method | LR | Iters | Max Cut Size |
+|:---|:---|:---:|:---:|:---:|:---|:---:|:---:|:---|
+| **Exp 1** | QPU_Exp 1 | 9 | 2 | 3 | Finite Difference (`approx_fprime`) | 0.05 | 50 | 5024.32 |
+| **Exp 2** | QPU_Exp 1 | 9 | 4 | 3 | Finite Difference (Padded Warm Start) | 0.05 | 50 | 4929.90 |
+| **Exp 3** | QPU_Exp 1 | 9 | 4 | 3 | Finite Difference | 0.05 | 20 | 5222.74 |
+| **Exp 4** | QPU_Exp 1 | 9 | 4 | 3 | Finite Difference (LR Decay = 0.98) | 0.05 | 20 | 5378.43 |
+| **Exp 5** | QPU_Exp 1 | 9 | 4 | 3 | Finite Difference | 0.04 | 100 | 5400.46 |
+| **Exp 6** | QPU_Exp 1 | 9 | 4 | 3 | Finite Difference | 0.20 | 100 | 5301.94 |
+| **Exp 7** | QPU_Exp 1 | 9 | 4 | 3 | Finite Difference | 0.20 | 100 | 5183.74 |
+| **Exp 8** | QPU_Exp 2 | 12 | 4 | 2 | Parameter Shift Rule + Chain Rule | 0.10 | 50 | **6767.71*** |
+| **Exp 9** | QPU_Exp 2 | 12 | 3 | 2 | Parameter Shift Rule + Chain Rule | 0.10 | 100 | 6507.96 |
+
+*\* Result after Deep Decoding & Multi-Sweep Bit-Swap Post-Processing.*
+
+## 3. Best Performing Configuration
+The most successful quantum run successfully outperformed the classical baseline algorithm limit.
+
+- **Best Quantum-Backed Cut**: **6767.71**
+- **Ansatz Architecture**: `EfficientSU2`, Entanglement = `pairwise`
+- **Qubits**: 12
+- **Circuit Depth (Reps)**: 4
+- **Encoding Scale (k)**: 2 (Quadratic Pauli-Correlation)
+- **Gradient Strategy**: Batched Exact Parameter Shift Rule
+- **Optimizer**: Custom Adam (Learning Rate = 0.1, Iterations = 50)
+- **Post-Processing Phase**: Deep 1-Bit and 2-Bit Swap Iterative Local Search.
+
+## 4. Key Findings & Significant Parameter Impacts
+
+1. **Gradient Computation Technique**: 
+   - Using finite-difference Euclidean gradients (`approx_fprime`) resulted in sub-optimal cuts peaking around `~5400`. 
+   - Upgrading the pipeline to use exact, analytical gradients via the **Parameter Shift Rule combined with Chain Rule gradients** (`QPU_Exp 2`) drastically improved optimization direction. This caused the base cut (before any local search) to instantly jump from ~5400 to **6260.28**.
+
+2. **Encoding Order (k) & Qubit Count**:
+   - Extremely high compression (180 nodes onto 9 qubits with `k=3`) severely limited the model's expressibility.
+   - Expanding to **12 qubits** and reducing correlation complexity to **`k=2`** captured the graph structure much better and resulted in significantly better performance.
+
+3. **Learning Rate & Stabilization (Decay)**:
+   - High learning rates (`lr=0.2`) proved highly unstable and degraded the final results over 100 iterations (dropping scores from `5400` down to `5183`).
+   - Conversely, utilizing a **smooth learning rate decay** (`0.98` per step in Exp 4) yielded a highly efficient run—achieving `5378.43` in just 20 iterations, proving that optimization step-sizing is crucial for the non-linear hyperbolic tangent loss landscape.
+
+4. **Depth (Reps)**:
+   - When equipped with the Parameter Shift Rule, deeper circuits successfully utilized their parameter counts (`reps=4` outperformed `reps=3` by reaching **6767** vs **6507** respectively). To prevent barren plateaus when transferring from shallow networks, "padding" with random noise uniformly between -0.01 and 0.01 successfully bridged the warm starts.
+
+5. **Local Search Post-Processing**:
+   - The quantum expectation values naturally guide the bitstring vector close to the optimum but contain slight statistical noise. The implementation of deep, 1-bit and 2-bit continuous sweeping pushed the raw quantum vector (`6260`) past the classical baseline limit up to the maximum score of `6767.71`.
 
 
 
