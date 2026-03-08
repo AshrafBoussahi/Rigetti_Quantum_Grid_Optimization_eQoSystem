@@ -122,11 +122,11 @@ The following sections detail the performance of our **Pauli Correlation Encodin
 ### 1. Simulation and Classical Deep-Optimization
 Initial testing was performed using high-fidelity simulations to establish a baseline for the PCE-VQE performance. The integration of a **greedy search** post-processor significantly enhanced the raw quantum output through iterative refinement. 
 
-| Phase | Cut Size |
-| :--- | :--- |
-| **Initial Cut (Pre-Local Search)** | 6561.39 |
-| **Final Optimized Cut** | 6635.43 |
-| **Final Deep-Optimized Cut (12 iterations)** | **6853.43** |
+| Phase | Cut Size | Optimality Gap (Distance from ceiling) | 
+| :--- | :--- | :--- |
+| **Initial Cut (Pre-Local Search)** | 6561.39 | 12.11% | 
+| **Final Optimized Cut** | 6635.43 | 11.12% |
+| **Final Deep-Optimized Cut (12 iterations)** | **6853.43** | **8.20%** |
 
 ---
 
